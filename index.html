@@ -125,6 +125,40 @@ body{font-family:'VT323',monospace;font-size:18px;color:var(--p);text-shadow:0 0
 .cursor-blink{display:inline-block;width:10px;height:16px;background:var(--p);margin-left:4px;animation:blink 1s step-end infinite;vertical-align:middle;}
 #musBtn{font-family:'VT323',monospace;font-size:15px;background:transparent;border:1px solid var(--pdim);color:var(--pd);padding:2px 10px;cursor:pointer;letter-spacing:.1em;}
 #musBtn:hover{border-color:var(--p);color:var(--p);}
+
+/* GAME BOY MOBILE V2 */
+#gbControls{display:none;grid-column:1/-1;grid-row:3;padding:10px 14px 12px;background:linear-gradient(#d8dfc6,#c6cfad);border-top:2px solid #8a9275;z-index:25;touch-action:none;}
+.gb-layout{display:flex;justify-content:space-between;align-items:center;gap:14px;}
+.dpad{position:relative;width:128px;height:128px;flex:0 0 auto;}
+.gb-key{position:absolute;width:44px;height:44px;border:none;border-radius:8px;background:#2c2f2b;color:#d8dfc6;font-family:'Share Tech Mono',monospace;font-size:20px;box-shadow:inset 0 2px 0 rgba(255,255,255,.06),0 3px 0 #131511,0 6px 12px rgba(0,0,0,.22);}
+.gb-key:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 1px 0 #131511,0 3px 6px rgba(0,0,0,.2);}
+.gb-up{left:42px;top:0;}
+.gb-down{left:42px;bottom:0;}
+.gb-left{left:0;top:42px;}
+.gb-right{right:0;top:42px;}
+.ab-pad{display:flex;gap:14px;align-items:center;justify-content:flex-end;flex:1;}
+.gb-btn{width:60px;height:60px;border:none;border-radius:50%;font-family:'Share Tech Mono',monospace;font-size:28px;font-weight:700;color:#f5f7ef;background:#8f2a2f;box-shadow:inset 0 3px 0 rgba(255,255,255,.18),0 4px 0 #4d1418,0 8px 14px rgba(0,0,0,.25);}
+.gb-btn:active{transform:translateY(2px);box-shadow:inset 0 2px 0 rgba(255,255,255,.12),0 2px 0 #4d1418,0 4px 8px rgba(0,0,0,.2);}
+.gb-btn.a{background:#b23a44;}
+.gb-btn.b{background:#8b2f38;}
+.gb-label{font-size:11px;letter-spacing:.12em;color:#4d5442;text-shadow:none;margin-top:4px;text-align:center;font-family:'Share Tech Mono',monospace;}
+
+@media (max-width: 900px), (pointer: coarse) {
+  body{background:#556147;display:flex;align-items:center;justify-content:center;}
+  #crt-wrap{width:min(100vw,430px);height:min(100vh,860px);border-radius:28px;border:10px solid #c8d2b2;box-shadow:0 24px 45px rgba(0,0,0,.35),inset 0 2px 0 rgba(255,255,255,.28);}
+  #crt-wrap::after{border-radius:18px;}
+  #ui{grid-template-columns:1fr;grid-template-rows:42px 1fr 164px;}
+  #topbar{padding:0 8px;font-size:12px;}
+  .tb-section{gap:10px;}
+  .tb-label{font-size:10px;}
+  .tb-val{font-size:14px;}
+  .side-panel{display:none;}
+  #game-zone{grid-column:1;grid-row:2;}
+  #gbControls{display:block;}
+  #botbar{display:none;}
+  .crt-title{font-size:36px;}
+  .tbtn{font-size:18px;padding:7px 16px;}
+}
 </style>
 </head>
 <body>
@@ -304,6 +338,27 @@ body{font-family:'VT323',monospace;font-size:18px;color:var(--p);text-shadow:0 0
         <div>OK: <span id="qCorr" style="color:var(--p)">0</span></div>
         <div>BONUS: <span id="qBonus" style="color:var(--amber)">+0</span></div>
         <div id="lastQ" style="margin-top:4px;font-size:10px;color:var(--pdim);line-height:1.4"></div>
+      </div>
+    </div>
+
+    <div id="gbControls">
+      <div class="gb-layout">
+        <div>
+          <div class="dpad">
+            <button class="gb-key gb-up" data-key="ArrowUp">▲</button>
+            <button class="gb-key gb-left" data-key="ArrowLeft">◀</button>
+            <button class="gb-key gb-right" data-key="ArrowRight">▶</button>
+            <button class="gb-key gb-down" data-key="ArrowDown">▼</button>
+          </div>
+          <div class="gb-label">D-PAD</div>
+        </div>
+        <div>
+          <div class="ab-pad">
+            <button class="gb-btn b" data-action="attack">B</button>
+            <button class="gb-btn a" data-action="jump">A</button>
+          </div>
+          <div class="gb-label">A = SAUT / B = TAPER</div>
+        </div>
       </div>
     </div>
   </div>
@@ -496,6 +551,40 @@ function syslog(msg,type=''){
 function cmd(msg){document.getElementById('cmdLine').innerHTML=msg+'<span class="cursor-blink"></span>';}
 
 const K={},KE={};
+const MOBILE_QUERY=window.matchMedia('(max-width: 900px), (pointer: coarse)');
+function setVirtualKey(code,isDown,edge){
+  if(isDown){
+    if(edge&&!K[code])KE[code]=true;
+    K[code]=true;
+  }else K[code]=false;
+}
+function bindVirtualControls(){
+  const root=document.getElementById('gbControls');
+  if(!root)return;
+  const releaseAll=()=>{['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyM'].forEach(k=>K[k]=false);};
+  const pressBtn=(btn)=>{
+    const key=btn.dataset.key,action=btn.dataset.action;
+    if(key)setVirtualKey(key,true,false);
+    if(action==='jump')setVirtualKey('Space',true,false);
+    if(action==='attack')setVirtualKey('KeyM',true,true);
+  };
+  const releaseBtn=(btn)=>{
+    const key=btn.dataset.key,action=btn.dataset.action;
+    if(key)setVirtualKey(key,false,false);
+    if(action==='jump')setVirtualKey('Space',false,false);
+    if(action==='attack')setVirtualKey('KeyM',false,false);
+  };
+  root.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('touchstart',e=>{e.preventDefault();pressBtn(btn);},{passive:false});
+    btn.addEventListener('touchend',e=>{e.preventDefault();releaseBtn(btn);},{passive:false});
+    btn.addEventListener('touchcancel',()=>releaseBtn(btn));
+    btn.addEventListener('mousedown',e=>{if(!MOBILE_QUERY.matches)return;e.preventDefault();pressBtn(btn);});
+    btn.addEventListener('mouseup',()=>releaseBtn(btn));
+    btn.addEventListener('mouseleave',()=>releaseBtn(btn));
+  });
+  window.addEventListener('blur',releaseAll);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseAll();});
+}
 function isP1AttackKey(e){
   const c=e.code||'',k=(e.key||'').toLowerCase();
   return c==='KeyM'||c==='Semicolon'||c==='Comma'||k==='m'||k===','||k===';'||k==='µ';
@@ -1003,6 +1092,8 @@ setInterval(updateCheatButtons,1000);
 ctx.fillStyle='#020a01';ctx.fillRect(0,0,800,520);
 
 setTimeout(()=>{syslog('DINO BASH v4 BOOT OK','');syslog('PHOSPHORE_VERT_ACTIF','warn');syslog('[ APPUYER 1J OU 2J ]','');},400);
+bindVirtualControls();
 </script>
 </body>
 </html>
+
